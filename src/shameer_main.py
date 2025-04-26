@@ -284,4 +284,6 @@ if st.button("Analyze Evidence"):
     st.success(f"Primary suspect: **{primary_suspect}**")
 
 else:
-    st.info("Click 'Analyze Evidence' to process the data and view results")
+    st.info("Click 'Analyze Evidence' to view results")
+
+# Run 'streamlit run src/shameer_main.py' in terminal
