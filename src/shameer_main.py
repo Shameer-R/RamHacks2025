@@ -3,6 +3,8 @@ from datetime import datetime
 import pandas as pd
 import json
 import numpy as np
+from geopy.distance import geodesic
+
 
 # Load data files
 def load_data():
@@ -89,10 +91,63 @@ def parse_timestamps(timestamp_str):
 
 def analyze_proximity(incidents, phone_pings, device_to_suspect):
     # Start checking which devices were near which incidents
-    pass
+    device_at_incidents = {device_id: set() for device_id in device_to_suspect.keys()}
+    evidence_log = {device_id: [] for device_id in device_to_suspect.keys()}
+
+    # Evidence constraints
+    proximity_threshold = 0.2 # miles
+    time_window = 60 # minutes
+
+    for incident in incidents:
+        incident_address = incident['address']
+
+        if "108 Linden St" in incident_address:
+            incident_location = (40.695, -73.92)
+        elif "1041 Linden St" in incident_address:
+            incident_location = (40.696, -73.925)
+        elif "102 Linden St" in incident_address:
+            incident_location = (40.697, -73.93)
+        else:
+            continue
+
+        entry_time = parse_timestamps(incident['entry_time'])
+        exit_time = parse_timestamps(incident['exit_time'])
+
+        if not entry_time or not exit_time:
+            continue
+
+        time_before = entry_time.replace(minute=max(0, entry_time.minute - time_window))
+        time_after = exit_time.replace(minute=min(59, exit_time.minute + time_window))
+
+        for ping in phone_pings:
+            device_id = ping['device_id']
+            if device_id not in device_to_suspect: # Device not linked to suspect
+                continue
+
+            ping_time = parse_timestamps(ping['timestamp'])
+
+            if time_before <= ping_time <= time_after:
+                ping_location = (ping['lat'], ping['lon'])
+
+                distance = geodesic(ping_location, incident_location).miles
+
+                if distance <= proximity_threshold:
+                    device_at_incidents[device_id].add(incident_address)
+
+                    evidence_log[device_id].append({
+                        'incident_address': incident_address,
+                        'ping_time': ping_time,
+                        'incident_entry': entry_time,
+                        'incident_exit': exit_time,
+                        'distance_miles': distance
+                    })
+
+    return device_at_incidents, evidence_log
+
 def main():
     # Load Data
     incidents, phone_pings, suspects, bike_logs, cam_snapshots = load_data()
     device_to_suspect = explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots)
+    device_at_incidents, evidence_log = analyze_proximity(incidents, phone_pings, device_to_suspect)
 
 main()
