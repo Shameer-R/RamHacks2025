@@ -64,6 +64,16 @@ def explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots):
     print(f"Total Camera Snapshots: {len(cam_snapshots)}")
     print(f"Columns: {list(cam_snapshots.columns)}")
 
+    # Connect Device IDS to Suspect
+    device_to_suspect = {}
+    for suspect in suspects:
+        if 'phone_id' in suspect and suspect['phone_id']:
+            device_to_suspect[suspect['phone_id']] = suspect['name']
+
+    print("\nDEVICE TO SUSPECT MAPPING:")
+    for device, name in device_to_suspect.items():
+        print(f"\t{device}: {name}")
+
 def main():
     # Load Data
     incidents, phone_pings, suspects, bike_logs, cam_snapshots = load_data()
