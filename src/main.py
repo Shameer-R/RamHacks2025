@@ -48,6 +48,15 @@ def explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots):
     device_ids = set(ping['device_id'] for ping in phone_pings)
     print(f"Unique device ids: {device_ids}")
 
+    # Explore Suspects
+    print("\nSUSPECTS:")
+    print(f"Number of suspects: {len(suspects)}")
+    for i, suspect in enumerate(suspects):
+        print(f"\nSuspect {i+1}")
+        for key, value in suspect.items():
+            print(f"\t{key}: {value}")
+
+
 
 def main():
     # Load Data
