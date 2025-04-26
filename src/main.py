@@ -74,9 +74,11 @@ def explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots):
     for device, name in device_to_suspect.items():
         print(f"\t{device}: {name}")
 
+    return device_to_suspect
+
 def main():
     # Load Data
     incidents, phone_pings, suspects, bike_logs, cam_snapshots = load_data()
-    explored_data = explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots)
+    device_to_suspect = explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots)
 
 main()
