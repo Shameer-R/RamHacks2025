@@ -87,6 +87,9 @@ def parse_timestamps(timestamp_str):
     except:
         return None
 
+def analyze_proximity(incidents, phone_pings, device_to_suspect):
+    # Start checking which devices were near which incidents
+    pass
 def main():
     # Load Data
     incidents, phone_pings, suspects, bike_logs, cam_snapshots = load_data()
