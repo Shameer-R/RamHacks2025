@@ -27,7 +27,21 @@ def load_data():
         print(f"Error loading data: {e}")
         return None
 
-def main():
-    data = load_data()
+def explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots):
+    print("INCIDENT REPORTS:")
+    print(f"Number of incidents: {len(incidents)}")
+    for i, incident in enumerate(incidents):
+        print(f"\nIncident {i+1}")
+        print(f"Date: {incident['date']}")
+        print(f"Address: {incident['address']}")
+        print(f"Entry Time: {incident['entry_time']}")
+        print(f"Exit Time: {incident['exit_time']}")
+        print(f"Notes: {incident['notes']}")
 
-main()
+def main():
+    # Load Data
+    incidents, phone_pings, suspects, bike_logs, cam_snapshots = load_data()
+
+    explored_data = explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots)
+
+Main()
