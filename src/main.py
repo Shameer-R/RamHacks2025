@@ -28,7 +28,10 @@ def load_data():
         return None
 
 def explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots):
-    print("INCIDENT REPORTS:")
+
+    # Explore Incidents
+
+    print("\nINCIDENT REPORTS:")
     print(f"Number of incidents: {len(incidents)}")
     for i, incident in enumerate(incidents):
         print(f"\nIncident {i+1}")
@@ -37,6 +40,14 @@ def explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots):
         print(f"Entry Time: {incident['entry_time']}")
         print(f"Exit Time: {incident['exit_time']}")
         print(f"Notes: {incident['notes']}")
+
+    # Explore Phone Pings
+
+    print("\nPHONE PINGS:")
+    print(f"Number of phone pings: {len(phone_pings)}")
+    device_ids = set(ping['device_id'] for ping in phone_pings)
+    print(f"Unique device ids: {device_ids}")
+
 
 def main():
     # Load Data
