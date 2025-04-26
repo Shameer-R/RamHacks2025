@@ -31,14 +31,14 @@ def load_data():
         print(f"Error loading data: {e}")
         return None
 
-def explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots):
 
+def explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots):
     # Explore Incidents
 
     print("\nINCIDENT REPORTS:")
     print(f"Number of incidents: {len(incidents)}")
     for i, incident in enumerate(incidents):
-        print(f"\nIncident {i+1}")
+        print(f"\nIncident {i + 1}")
         print(f"Date: {incident['date']}")
         print(f"Address: {incident['address']}")
         print(f"Entry Time: {incident['entry_time']}")
@@ -56,7 +56,7 @@ def explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots):
     print("\nSUSPECTS:")
     print(f"Number of suspects: {len(suspects)}")
     for i, suspect in enumerate(suspects):
-        print(f"\nSuspect {i+1}")
+        print(f"\nSuspect {i + 1}")
         for key, value in suspect.items():
             print(f"\t{key}: {value}")
 
@@ -80,14 +80,17 @@ def explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots):
 
     return device_to_suspect
 
+
 def parse_timestamps(timestamp_str):
     try:
         if 'T' in timestamp_str:
-            return datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+            return datetime.strptime(timestamp_str, '%Y-%m-%dT%H:%M:%S')
         else:
             return datetime.strptime(timestamp_str, '%Y-%m-%d')
-    except:
+    except Exception as e:
+        print(f"Error parsing timestamp {timestamp_str}: {e}")
         return None
+
 
 def analyze_proximity(incidents, phone_pings, device_to_suspect):
     # Start checking which devices were near which incidents
@@ -95,15 +98,15 @@ def analyze_proximity(incidents, phone_pings, device_to_suspect):
     evidence_log = {device_id: [] for device_id in device_to_suspect.keys()}
 
     # Evidence constraints
-    proximity_threshold = 0.2 # miles
-    time_window = 60 # minutes
+    proximity_threshold = 0.2  # miles
+    time_window = 60  # minutes
 
     for incident in incidents:
         incident_address = incident['address']
 
         if "108 Linden St" in incident_address:
             incident_location = (40.695, -73.92)
-        elif "1041 Linden St" in incident_address:
+        elif "104 Linden St" in incident_address:
             incident_location = (40.696, -73.925)
         elif "102 Linden St" in incident_address:
             incident_location = (40.697, -73.93)
@@ -116,15 +119,17 @@ def analyze_proximity(incidents, phone_pings, device_to_suspect):
         if not entry_time or not exit_time:
             continue
 
-        time_before = entry_time.replace(minute=max(0, entry_time.minute - time_window))
-        time_after = exit_time.replace(minute=min(59, exit_time.minute + time_window))
+        time_before = entry_time - pd.Timedelta(minutes=time_window)
+        time_after = exit_time + pd.Timedelta(minutes=time_window)
 
         for ping in phone_pings:
             device_id = ping['device_id']
-            if device_id not in device_to_suspect: # Device not linked to suspect
+            if device_id not in device_to_suspect:  # Device not linked to suspect
                 continue
 
             ping_time = parse_timestamps(ping['timestamp'])
+            if not ping_time:
+                continue  # Skip if timestamp couldn't be parsed
 
             if time_before <= ping_time <= time_after:
                 ping_location = (ping['lat'], ping['lon'])
@@ -144,6 +149,7 @@ def analyze_proximity(incidents, phone_pings, device_to_suspect):
 
     return device_at_incidents, evidence_log
 
+
 def analyze_bike_rentals(incidents, bike_logs, suspects):
     name_to_suspect = {}
     for suspect in suspects:
@@ -153,8 +159,8 @@ def analyze_bike_rentals(incidents, bike_logs, suspects):
 
     suspect_rentals = {suspect['name']: set() for suspect in suspects}
 
-    bike_logs['start_time'] = pd.to_datetime(bike_logs['start_time'])
-    bike_logs['end_time'] = pd.to_datetime(bike_logs['end_time'])
+    bike_logs['start_time'] = pd.to_datetime(bike_logs['start_time']).dt.tz_localize(None)
+    bike_logs['end_time'] = pd.to_datetime(bike_logs['end_time']).dt.tz_localize(None)
 
     incident_times = []
     for incident in incidents:
@@ -167,27 +173,101 @@ def analyze_bike_rentals(incidents, bike_logs, suspects):
                 'exit_time': exit_time
             })
 
-        for _, rental in bike_logs.iterrows():
-            renter = rental['user_id']
-            if renter in name_to_suspect:
-                suspect = name_to_suspect[renter]
-                suspect_name = suspect['name']
+    for _, rental in bike_logs.iterrows():
+        renter = rental['user_id']
+        if renter in name_to_suspect:
+            suspect = name_to_suspect[renter]
+            suspect_name = suspect['name']
 
-                rental_start = rental['start_time']
-                rental_end = rental['end_time']
+            rental_start = rental['start_time']
+            rental_end = rental['end_time']
 
-                for incident in incident_times:
-                    if (rental_start <= incident['entry_time'] and rental_end >= incident['exit_time']):
-                        suspect_rentals[suspect_name].add(incident['address'])
+            for incident in incident_times:
+                # Convert both to the same type for comparison
+                if (rental_start <= incident['exit_time'] and
+                    rental_end >= incident['entry_time']):
+                    suspect_rentals[suspect_name].add(incident['address'])
 
     return suspect_rentals
+
+
+def identify_primary_suspects(device_at_incidents, device_to_suspect, suspect_rentals, incidents):
+    all_addresses = set(incident['address'] for incident in incidents)
+
+    combined_evidence = {}
+
+    # Collect evidence from phone pings
+    for device_id, addresses in device_at_incidents.items():
+        suspect_name = device_to_suspect[device_id]
+        if suspect_name not in combined_evidence:
+            combined_evidence[suspect_name] = set()
+        combined_evidence[suspect_name].update(addresses)
+
+    # Add bike rental evidence
+    for suspect_name, addresses in suspect_rentals.items():
+        if suspect_name not in combined_evidence:
+            combined_evidence[suspect_name] = set()
+        combined_evidence[suspect_name].update(addresses)
+
+    prime_suspects = []
+    for suspect_name, addresses in combined_evidence.items():
+        if addresses == all_addresses:
+            evidence_count = len(addresses)
+            prime_suspects.append((suspect_name, evidence_count))
+
+    if prime_suspects:
+        # Sort by evidence count
+        prime_suspects.sort(key=lambda x: x[1], reverse=True)
+
+        top_suspect = prime_suspects[0][0]
+
+        phone_evidence = []
+        for device_id, addresses in device_at_incidents.items():
+            if device_to_suspect[device_id] == top_suspect:
+                phone_evidence = list(addresses)
+
+        bike_evidence = list(suspect_rentals.get(top_suspect, []))
+        justification = f"{top_suspect} was present at all three crimes"
+
+        return top_suspect, justification
+
+    # FIX: Add a more informative return message
+    print("No suspect matches all three burglaries.")
+    return None, "No suspect matches all three burglaries."
 
 
 def main():
     # Load Data
     incidents, phone_pings, suspects, bike_logs, cam_snapshots = load_data()
+
+    if incidents is None or phone_pings is None or suspects is None:
+        print("Failed to load critical data files. Exiting.")
+        return
+
     device_to_suspect = explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots)
     device_at_incidents, evidence_log = analyze_proximity(incidents, phone_pings, device_to_suspect)
+
+    # Debug prints
+    print("\nDEVICES AT INCIDENTS:")
+    for device_id, addresses in device_at_incidents.items():
+        print(f"{device_id}: {addresses}")
+
     suspect_rentals = analyze_bike_rentals(incidents, bike_logs, suspects)
 
-main()
+    # Debug prints
+    print("\nSUSPECT RENTALS:")
+    for suspect, addresses in suspect_rentals.items():
+        print(f"{suspect}: {addresses}")
+
+    result = identify_primary_suspects(device_at_incidents, device_to_suspect, suspect_rentals, incidents)
+
+    if result and isinstance(result, tuple):
+        top_suspect, justification = result
+        print(f"\nTOP SUSPECT: {top_suspect}")
+        print(f"JUSTIFICATION: {justification}")
+    else:
+        print("No definitive suspect identified.")
+
+
+if __name__ == "__main__":
+    main()
