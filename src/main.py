@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import pandas as pd
 import json
 import numpy as np
@@ -75,6 +77,15 @@ def explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots):
         print(f"\t{device}: {name}")
 
     return device_to_suspect
+
+def parse_timestamps(timestamp_str):
+    try:
+        if 'T' in timestamp_str:
+            return datetime.strptime(timestamp_str, '%Y-%m-%d %H:%M:%S')
+        else:
+            return datetime.strptime(timestamp_str, '%Y-%m-%d')
+    except:
+        return None
 
 def main():
     # Load Data
