@@ -1,0 +1,92 @@
+[
+  {
+    "name": "Shannon Jones",
+    "alias": "williamsyvette",
+    "phone_id": "device_williamsyvette",
+    "user_id": null,
+    "address": "88-10 Queens Blvd, Queens, NY",
+    "occupation": "Rideshare biker",
+    "alibi": "No one can verify their whereabouts."
+  },
+  {
+    "name": "Michael Cross",
+    "alias": "smoore",
+    "phone_id": "device_smoore",
+    "user_id": null,
+    "address": "123 Atlantic Ave, Brooklyn, NY",
+    "occupation": "Uber driver",
+    "alibi": "No one can verify their whereabouts."
+  },
+  {
+    "name": "Joseph Martinez",
+    "alias": "calebsmith",
+    "phone_id": "device_calebsmith",
+    "user_id": null,
+    "address": "512 Liberty Ave, Queens, NY",
+    "occupation": "Street musician",
+    "alibi": "Was reportedly walking their dog around the block."
+  },
+  {
+    "name": "Pamela Romero",
+    "alias": "harrellkenneth",
+    "phone_id": "device_harrellkenneth",
+    "user_id": null,
+    "address": "210 Beach 20th St, Queens, NY",
+    "occupation": "Uber driver",
+    "alibi": "Says they were working night shift at a bodega."
+  },
+  {
+    "name": "Theresa Miller",
+    "alias": "wcabrera",
+    "phone_id": "device_wcabrera",
+    "user_id": null,
+    "address": "25-06 30th St, Queens, NY",
+    "occupation": "Street musician",
+    "alibi": "Claims to have been out of town, no proof provided."
+  },
+  {
+    "name": "Kevin Ortega",
+    "alias": "kevin_ortega",
+    "phone_id": "device_kevin",
+    "user_id": null,
+    "address": "12 Chauncey St, Queens, NY",
+    "occupation": "High school student",
+    "alibi": "Claims he was at home watching TV. Family confirms he came home late, no digital proof."
+  },
+  {
+    "name": "Brittany Moore",
+    "alias": "ycarlson",
+    "phone_id": "device_ycarlson",
+    "user_id": null,
+    "address": "45-20 Vernon Blvd, Queens, NY",
+    "occupation": "Street musician",
+    "alibi": "Says they were working night shift at a bodega."
+  },
+  {
+    "name": "Ruth Chen",
+    "alias": "ruth_chen",
+    "phone_id": "device_ruth",
+    "user_id": null,
+    "address": "4709 Anmoore Road, Queens, NY",
+    "occupation": "Landlord of some homes on Linden St",
+    "alibi": "Claims she was visiting family in Albany for the week. No travel records provided."
+  },
+  {
+    "name": "Jamal Reyes",
+    "alias": "jamal_reyes",
+    "phone_id": "device_jamal",
+    "user_id": "jamal_reyes",
+    "address": "33 Hart Ave, Queens, NY",
+    "occupation": "Food delivery rider",
+    "alibi": "Claims he was delivering food on Linden Street each night, no specific orders match the addresses."
+  },
+  {
+    "name": "Laura Kennedy",
+    "alias": "maguirre",
+    "phone_id": "device_maguirre",
+    "user_id": null,
+    "address": "456 Grand Concourse, Bronx, NY",
+    "occupation": "Construction worker",
+    "alibi": "Claims to have been out of town, no proof provided."
+  }
+]

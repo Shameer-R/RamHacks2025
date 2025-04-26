@@ -1,0 +1,23 @@
+[
+  {
+    "date": "2025-03-05",
+    "address": "108 Linden St, Queens, NY",
+    "entry_time": "2025-03-05T02:07:00",
+    "exit_time": "2025-03-05T02:41:00",
+    "notes": "Garage entry. Bike and tools missing. No fingerprints."
+  },
+  {
+    "date": "2025-03-04",
+    "address": "104 Linden St, Queens, NY",
+    "entry_time": "2025-03-04T02:29:00",
+    "exit_time": "2025-03-04T02:58:00",
+    "notes": "Forced front door entry. Jewelry and cash taken."
+  },
+  {
+    "date": "2025-03-03",
+    "address": "102 Linden St, Queens, NY",
+    "entry_time": "2025-03-03T02:13:00",
+    "exit_time": "2025-03-03T02:46:00",
+    "notes": "Rear window was broken, small electronics stolen."
+  }
+]
