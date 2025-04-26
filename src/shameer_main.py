@@ -98,7 +98,7 @@ def analyze_proximity(incidents, phone_pings, device_to_suspect):
     evidence_log = {device_id: [] for device_id in device_to_suspect.keys()}
 
     # Evidence constraints
-    proximity_threshold = 0.2  # miles
+    proximity_threshold = 1 # miles
     time_window = 60  # minutes
 
     for incident in incidents:
@@ -209,31 +209,40 @@ def identify_primary_suspects(device_at_incidents, device_to_suspect, suspect_re
             combined_evidence[suspect_name] = set()
         combined_evidence[suspect_name].update(addresses)
 
-    prime_suspects = []
+    # Calculate a score for each suspect
+    suspect_scores = []
     for suspect_name, addresses in combined_evidence.items():
-        if addresses == all_addresses:
-            evidence_count = len(addresses)
-            prime_suspects.append((suspect_name, evidence_count))
+        # Calculate number of matching addresses
+        match_count = len(addresses)
+        suspect_scores.append((suspect_name, match_count))
 
-    if prime_suspects:
-        # Sort by evidence count
-        prime_suspects.sort(key=lambda x: x[1], reverse=True)
+    # Sort by score (match count) in descending order
+    suspect_scores.sort(key=lambda x: x[1], reverse=True)
 
-        top_suspect = prime_suspects[0][0]
+    # Get top 3 suspects (or fewer if there aren't 3)
+    top_suspects = suspect_scores[:min(3, len(suspect_scores))]
 
+    # Format the results
+    results = []
+    for suspect_name, match_count in top_suspects:
         phone_evidence = []
         for device_id, addresses in device_at_incidents.items():
-            if device_to_suspect[device_id] == top_suspect:
+            if device_to_suspect[device_id] == suspect_name:
                 phone_evidence = list(addresses)
 
-        bike_evidence = list(suspect_rentals.get(top_suspect, []))
-        justification = f"{top_suspect} was present at all three crimes"
+        bike_evidence = list(suspect_rentals.get(suspect_name, []))
 
-        return top_suspect, justification
+        justification = f"{suspect_name} was present at {match_count} out of {len(all_addresses)} crime scenes)"
 
-    # FIX: Add a more informative return message
-    print("No suspect matches all three burglaries.")
-    return None, "No suspect matches all three burglaries."
+        results.append({
+            'name': suspect_name,
+            'match_count': match_count,
+            'justification': justification,
+            'phone_evidence': phone_evidence,
+            'bike_evidence': bike_evidence
+        })
+
+    return results
 
 
 def main():
@@ -259,15 +268,24 @@ def main():
     for suspect, addresses in suspect_rentals.items():
         print(f"{suspect}: {addresses}")
 
-    result = identify_primary_suspects(device_at_incidents, device_to_suspect, suspect_rentals, incidents)
+    top_suspects = identify_primary_suspects(device_at_incidents, device_to_suspect, suspect_rentals, incidents)
 
-    if result and isinstance(result, tuple):
-        top_suspect, justification = result
-        print(f"\nTOP SUSPECT: {top_suspect}")
-        print(f"JUSTIFICATION: {justification}")
-    else:
-        print("No definitive suspect identified.")
+    # Print the top suspects
+    print("\n=== TOP 3 SUSPECTS ===")
+    for i, suspect in enumerate(top_suspects):
+        print(f"\n#{i + 1}: {suspect['name']}")
+        print(f"Evidence: {suspect['match_count']} crime scenes")
+        print(f"Justification: {suspect['justification']}")
 
+        if suspect['phone_evidence']:
+            print("Phone evidence at addresses:")
+            for address in suspect['phone_evidence']:
+                print(f"  - {address}")
+
+        if suspect['bike_evidence']:
+            print("Bike rental evidence at addresses:")
+            for address in suspect['bike_evidence']:
+                print(f"  - {address}")
 
 if __name__ == "__main__":
     main()
