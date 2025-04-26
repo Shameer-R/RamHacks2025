@@ -56,14 +56,17 @@ def explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots):
         for key, value in suspect.items():
             print(f"\t{key}: {value}")
 
-    print("\nBike Logs")
+    print("\nBIKE LOGS:")
     print(f"Total Bike Logs: {len(bike_logs)}")
     print(f"Columns: {list(bike_logs.columns)}")
+
+    print("\nCAMERA SNAPSHOTS:")
+    print(f"Total Camera Snapshots: {len(cam_snapshots)}")
+    print(f"Columns: {list(cam_snapshots.columns)}")
 
 def main():
     # Load Data
     incidents, phone_pings, suspects, bike_logs, cam_snapshots = load_data()
-
     explored_data = explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots)
 
 main()
