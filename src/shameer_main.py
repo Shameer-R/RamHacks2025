@@ -144,10 +144,50 @@ def analyze_proximity(incidents, phone_pings, device_to_suspect):
 
     return device_at_incidents, evidence_log
 
+def analyze_bike_rentals(incidents, bike_logs, suspects):
+    name_to_suspect = {}
+    for suspect in suspects:
+        name_to_suspect[suspect['name']] = suspect
+        if 'alias' in suspect:
+            name_to_suspect[suspect['alias']] = suspect
+
+    suspect_rentals = {suspect['name']: set() for suspect in suspects}
+
+    bike_logs['start_time'] = pd.to_datetime(bike_logs['start_time'])
+    bike_logs['end_time'] = pd.to_datetime(bike_logs['end_time'])
+
+    incident_times = []
+    for incident in incidents:
+        entry_time = parse_timestamps(incident['entry_time'])
+        exit_time = parse_timestamps(incident['exit_time'])
+        if entry_time and exit_time:
+            incident_times.append({
+                'address': incident['address'],
+                'entry_time': entry_time,
+                'exit_time': exit_time
+            })
+
+        for _, rental in bike_logs.iterrows():
+            renter = rental['user_id']
+            if renter in name_to_suspect:
+                suspect = name_to_suspect[renter]
+                suspect_name = suspect['name']
+
+                rental_start = rental['start_time']
+                rental_end = rental['end_time']
+
+                for incident in incident_times:
+                    if (rental_start <= incident['entry_time'] and rental_end >= incident['exit_time']):
+                        suspect_rentals[suspect_name].add(incident['address'])
+
+    return suspect_rentals
+
+
 def main():
     # Load Data
     incidents, phone_pings, suspects, bike_logs, cam_snapshots = load_data()
     device_to_suspect = explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots)
     device_at_incidents, evidence_log = analyze_proximity(incidents, phone_pings, device_to_suspect)
+    suspect_rentals = analyze_bike_rentals(incidents, bike_logs, suspects)
 
 main()
