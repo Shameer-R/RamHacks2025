@@ -44,4 +44,4 @@ def main():
 
     explored_data = explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots)
 
-Main()
+main()
