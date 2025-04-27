@@ -43,7 +43,7 @@ def analyze_proximity(incidents, phone_pings, device_to_suspect):
     device_at_incidents = {device_id: set() for device_id in device_to_suspect.keys()}
     evidence_log = {device_id: [] for device_id in device_to_suspect.keys()}
 
-    proximity_threshold = .75  # miles
+    proximity_threshold = .1  # miles
     time_window = 60  # minutes
 
     for incident in incidents:
@@ -69,21 +69,18 @@ def analyze_proximity(incidents, phone_pings, device_to_suspect):
             if not ping_time:
                 continue
 
+            #maybe change
             if time_before <= ping_time <= time_after:
-                ping_location = (ping['lat'], ping['lon'])
-
-                distance = geodesic(ping_location, incident_location).miles
-
-                if distance <= proximity_threshold:
+                ping_location = locator.reverse(f"{ping['lat']}" +"," +f"{ping['lon']}")
+                if "Linden Street" in ping_location.address:
                     device_at_incidents[device_id].add(incident_address)
 
                     evidence_log[device_id].append({
-                        'incident_address': incident_address,
-                        'ping_time': ping_time,
-                        'incident_entry': entry_time,
-                        'incident_exit': exit_time,
-                        'distance_miles': distance
-                    })
+                            'incident_address': incident_address,
+                            'ping_time': ping_time,
+                            'incident_entry': entry_time,
+                            'incident_exit': exit_time,
+                        })
 
     return device_at_incidents, evidence_log
 
