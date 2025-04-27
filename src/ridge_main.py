@@ -4,9 +4,9 @@ import geocoder
 from geopy.geocoders import Nominatim
 import json
 import numpy as np
+from geopy.distance import geodesic
 
 # Load data files
- 
 
 def load_data():
     # Load Data
@@ -32,21 +32,67 @@ def load_data():
         print(f"Error loading data: {e}")
         return None
 
-def main():
-    devices_at_crime = [];
-    geolocator = Nominatim(user_agent="hackathon")
-    incidents_json, pings_json, suspects_json, bike_logs_json, snapshots_json = load_data();
 
-    for incident in incidents_json:
-        for pings in pings_json:
+def get_devices_near_crime(crime_json, ping_json):
+    distance = 1
+    geolocator = Nominatim(user_agent="hackathon")
+    devices_near_crime = []
+    incident_day = 5
+    for incident in crime_json:
+        for pings in ping_json:
             if pings['timestamp']>=incident['entry_time'] and pings['timestamp'] <=incident['exit_time']:
-                location = geolocator.reverse((f"{pings['lat']}" +","+ f"{pings['lon']}"))
-                first_partition = str.partition(location.address,", ")
-                street_number = first_partition[0]
-                street= str.partition(first_partition[2]," ")[0]
-                if street == str.partition(str.partition(incident['address']," ")[2]," ")[0]:
-                        print(street + " "+ street_number)
-                        devices_at_crime.append(pings['device_id'])
-    for i in devices_at_crime:
+                location = geolocator.geocode((f"{incident['address']}"))
+                if geodesic((location.latitude,location.longitude),(pings['lat'],pings['lon'])).miles <= distance:
+                    devices_near_crime.append([pings['device_id'],incident_day])
+        incident_day-=1
+    return devices_near_crime
+
+def suspects_from_phone(suspect_json, devices_near):
+    suspect_list = []
+    for suspect in suspect_json:
+        for device_data in devices_near:
+            if suspect['phone_id'] == device_data[0]:
+                suspect_list.append([suspect['name'],device_data[1]])
+    return suspect_list
+
+def get_suspects_from_logs(bike_csv,incident_json):
+    suspect_list = []
+    for incident in incident_json:
+        bike_counter = 0
+        while bike_counter < len(bike_csv["start_time"]):
+            if incident["entry_time"] >= (bike_csv["start_time"])[bike_counter] and incident["exit_time"] <= (bike_csv["end_time"])[bike_counter]:
+                suspect_list.append((bike_csv["user_id"])[bike_counter])
+            bike_counter+=1
+    return suspect_list
+                
+
+
+def filter_bike_suspects(suspect_json, bike_suspects):
+    final_list = []
+    for suspect in suspect_json:
+        for sus in bike_suspects:
+            if sus == suspect["alias"] and not (sus in final_list):
+                final_list.append(sus)
+    return final_list
+
+def main():
+
+    incidents_json, pings_json, suspects_json, bike_logs_csv, snapshots_csv = load_data();
+    devices_near_crime = get_devices_near_crime(incidents_json,pings_json)
+    suspect_list = suspects_from_phone(suspects_json,devices_near_crime)
+
+
+
+
+    for i in suspect_list:
         print(i)
+
+
+
+    print("suspects from bike logs")
+    bikes_rented = get_suspects_from_logs(bike_logs_csv,incidents_json)
+    bike_suspect_list = filter_bike_suspects(suspects_json,bikes_rented)
+    for i in bike_suspect_list:
+        print(i)
+
 main()
