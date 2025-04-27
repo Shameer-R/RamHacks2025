@@ -1,84 +1,32 @@
-from datetime import datetime
-
+import streamlit as st
 import pandas as pd
 import json
-import numpy as np
+from datetime import datetime
 from geopy.distance import geodesic
+import folium
+from streamlit_folium import folium_static
+from geopy.geocoders import Nominatim
 
+# global geocode object for turning address to coordinates and vice versa
+locator = Nominatim(user_agent="proximity_analyzer")
 
-# Load data files
 def load_data():
-    # Load Data
     try:
-        with open('case_files/incident_reports.json', 'r') as f:
+        with open('../case_files/incident_reports.json', 'r') as f:
             incidents = json.load(f)
 
-        with open('case_files/phone_pings.json', 'r') as f:
+        with open('../case_files/phone_pings.json', 'r') as f:
             phone_pings = json.load(f)
 
-        with open('case_files/suspects.json', 'r') as f:
+        with open('../case_files/suspects.json', 'r') as f:
             suspects = json.load(f)
 
-        # Load CSV Files
-        bike_logs = pd.read_csv('case_files/bike_logs.csv')
-        cam_snapshots = pd.read_csv('case_files/cam_snapshots_metadata.csv')
+        bike_logs = pd.read_csv('../case_files/bike_logs.csv')
 
-        print("Data successfully loaded")
-
-        return incidents, phone_pings, suspects, bike_logs, cam_snapshots
-
+        return incidents, phone_pings, suspects, bike_logs
     except Exception as e:
-        print(f"Error loading data: {e}")
-        return None
-
-
-def explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots):
-    # Explore Incidents
-
-    print("\nINCIDENT REPORTS:")
-    print(f"Number of incidents: {len(incidents)}")
-    for i, incident in enumerate(incidents):
-        print(f"\nIncident {i + 1}")
-        print(f"Date: {incident['date']}")
-        print(f"Address: {incident['address']}")
-        print(f"Entry Time: {incident['entry_time']}")
-        print(f"Exit Time: {incident['exit_time']}")
-        print(f"Notes: {incident['notes']}")
-
-    # Explore Phone Pings
-
-    print("\nPHONE PINGS:")
-    print(f"Number of phone pings: {len(phone_pings)}")
-    device_ids = set(ping['device_id'] for ping in phone_pings)
-    print(f"Unique device ids: {device_ids}")
-
-    # Explore Suspects
-    print("\nSUSPECTS:")
-    print(f"Number of suspects: {len(suspects)}")
-    for i, suspect in enumerate(suspects):
-        print(f"\nSuspect {i + 1}")
-        for key, value in suspect.items():
-            print(f"\t{key}: {value}")
-
-    print("\nBIKE LOGS:")
-    print(f"Total Bike Logs: {len(bike_logs)}")
-    print(f"Columns: {list(bike_logs.columns)}")
-
-    print("\nCAMERA SNAPSHOTS:")
-    print(f"Total Camera Snapshots: {len(cam_snapshots)}")
-    print(f"Columns: {list(cam_snapshots.columns)}")
-
-    # Connect Device IDS to Suspect
-    device_to_suspect = {}
-    for suspect in suspects:
-        if 'phone_id' in suspect and suspect['phone_id']:
-            device_to_suspect[suspect['phone_id']] = suspect['name']
-
-    print("\nDEVICE TO SUSPECT MAPPING:")
-    for device, name in device_to_suspect.items():
-        print(f"\t{device}: {name}")
-
-    return device_to_suspect
+        st.error(f"Error loading data: {e}")
+        return None, None, None, None
 
 
 def parse_timestamps(timestamp_str):
@@ -88,30 +36,20 @@ def parse_timestamps(timestamp_str):
         else:
             return datetime.strptime(timestamp_str, '%Y-%m-%d')
     except Exception as e:
-        print(f"Error parsing timestamp {timestamp_str}: {e}")
         return None
 
 
 def analyze_proximity(incidents, phone_pings, device_to_suspect):
-    # Start checking which devices were near which incidents
     device_at_incidents = {device_id: set() for device_id in device_to_suspect.keys()}
     evidence_log = {device_id: [] for device_id in device_to_suspect.keys()}
 
-    # Evidence constraints
-    proximity_threshold = 1 # miles
+    proximity_threshold = .75  # miles
     time_window = 60  # minutes
 
     for incident in incidents:
         incident_address = incident['address']
-
-        if "108 Linden St" in incident_address:
-            incident_location = (40.695, -73.92)
-        elif "104 Linden St" in incident_address:
-            incident_location = (40.696, -73.925)
-        elif "102 Linden St" in incident_address:
-            incident_location = (40.697, -73.93)
-        else:
-            continue
+        incident_geocode = locator.geocode(incident_address)
+        incident_location = (incident_geocode.latitude,incident_geocode.longitude)
 
         entry_time = parse_timestamps(incident['entry_time'])
         exit_time = parse_timestamps(incident['exit_time'])
@@ -124,12 +62,12 @@ def analyze_proximity(incidents, phone_pings, device_to_suspect):
 
         for ping in phone_pings:
             device_id = ping['device_id']
-            if device_id not in device_to_suspect:  # Device not linked to suspect
+            if device_id not in device_to_suspect:
                 continue
 
             ping_time = parse_timestamps(ping['timestamp'])
             if not ping_time:
-                continue  # Skip if timestamp couldn't be parsed
+                continue
 
             if time_before <= ping_time <= time_after:
                 ping_location = (ping['lat'], ping['lon'])
@@ -183,9 +121,7 @@ def analyze_bike_rentals(incidents, bike_logs, suspects):
             rental_end = rental['end_time']
 
             for incident in incident_times:
-                # Convert both to the same type for comparison
-                if (rental_start <= incident['exit_time'] and
-                    rental_end >= incident['entry_time']):
+                if rental_start <= incident['entry_time'] and rental_end >= incident['exit_time']:
                     suspect_rentals[suspect_name].add(incident['address'])
 
     return suspect_rentals
@@ -196,96 +132,149 @@ def identify_primary_suspects(device_at_incidents, device_to_suspect, suspect_re
 
     combined_evidence = {}
 
-    # Collect evidence from phone pings
     for device_id, addresses in device_at_incidents.items():
         suspect_name = device_to_suspect[device_id]
         if suspect_name not in combined_evidence:
             combined_evidence[suspect_name] = set()
         combined_evidence[suspect_name].update(addresses)
 
-    # Add bike rental evidence
     for suspect_name, addresses in suspect_rentals.items():
         if suspect_name not in combined_evidence:
             combined_evidence[suspect_name] = set()
         combined_evidence[suspect_name].update(addresses)
 
-    # Calculate a score for each suspect
-    suspect_scores = []
+    suspects_scored = []
     for suspect_name, addresses in combined_evidence.items():
-        # Calculate number of matching addresses
         match_count = len(addresses)
-        suspect_scores.append((suspect_name, match_count))
-
-    # Sort by score (match count) in descending order
-    suspect_scores.sort(key=lambda x: x[1], reverse=True)
-
-    # Get top 3 suspects (or fewer if there aren't 3)
-    top_suspects = suspect_scores[:min(3, len(suspect_scores))]
-
-    # Format the results
-    results = []
-    for suspect_name, match_count in top_suspects:
-        phone_evidence = []
-        for device_id, addresses in device_at_incidents.items():
-            if device_to_suspect[device_id] == suspect_name:
-                phone_evidence = list(addresses)
-
-        bike_evidence = list(suspect_rentals.get(suspect_name, []))
-
-        justification = f"{suspect_name} was present at {match_count} out of {len(all_addresses)} crime scenes)"
-
-        results.append({
+        coverage = (match_count / len(all_addresses)) * 100
+        suspects_scored.append({
             'name': suspect_name,
             'match_count': match_count,
-            'justification': justification,
-            'phone_evidence': phone_evidence,
-            'bike_evidence': bike_evidence
+            'coverage': coverage,
+            'addresses': list(addresses)
         })
 
-    return results
+    suspects_scored.sort(key=lambda x: x['match_count'], reverse=True)
+
+    return suspects_scored[:3]
 
 
-def main():
-    # Load Data
-    incidents, phone_pings, suspects, bike_logs, cam_snapshots = load_data()
+def create_map(incidents, phone_pings, top_suspect_devices):
+    incident_coords = []
+    for incident in incidents:
+        geocode = locator.geocode(incident['address'])
+        incident_coords.append((geocode.latitude,geocode.longitude, incident['address'], incident['date']))
 
-    if incidents is None or phone_pings is None or suspects is None:
-        print("Failed to load critical data files. Exiting.")
-        return
+    center_lat = sum(coord[0] for coord in incident_coords) / len(incident_coords)
+    center_lon = sum(coord[1] for coord in incident_coords) / len(incident_coords)
 
-    device_to_suspect = explore_data(incidents, phone_pings, suspects, bike_logs, cam_snapshots)
+    m = folium.Map(location=[center_lat, center_lon], zoom_start=16)
+
+    for lat, lon, address, date in incident_coords:
+        folium.Marker(
+            location=[lat, lon],
+            popup=f"{address}<br>Date: {date}",
+            icon=folium.Icon(color='red', icon='home'),
+        ).add_to(m)
+
+    for ping in phone_pings:
+        if ping['device_id'] in top_suspect_devices:
+            color = 'green'
+            radius = 30
+            fill_opacity = 0.7
+        else:
+            color = 'blue'
+            radius = 10
+            fill_opacity = 0.3
+
+        folium.CircleMarker(
+            location=[ping['lat'], ping['lon']],
+            radius=radius,
+            popup=f"Device: {ping['device_id']}<br>Time: {ping['timestamp']}",
+            color=color,
+            fill=True,
+            fill_opacity=fill_opacity
+        ).add_to(m)
+
+    return m
+
+
+st.title("Linden Street Burglaries Investigation")
+
+if st.button("Analyze Evidence"):
+    incidents, phone_pings, suspects, bike_logs = load_data()
+
+    if incidents is None:
+        st.error("Failed to load data files. Check file paths.")
+        st.stop()
+
+    device_to_suspect = {}
+    for suspect in suspects:
+        if 'phone_id' in suspect and suspect['phone_id']:
+            device_to_suspect[suspect['phone_id']] = suspect['name']
+
     device_at_incidents, evidence_log = analyze_proximity(incidents, phone_pings, device_to_suspect)
-
-    # Debug prints
-    print("\nDEVICES AT INCIDENTS:")
-    for device_id, addresses in device_at_incidents.items():
-        print(f"{device_id}: {addresses}")
-
     suspect_rentals = analyze_bike_rentals(incidents, bike_logs, suspects)
-
-    # Debug prints
-    print("\nSUSPECT RENTALS:")
-    for suspect, addresses in suspect_rentals.items():
-        print(f"{suspect}: {addresses}")
-
     top_suspects = identify_primary_suspects(device_at_incidents, device_to_suspect, suspect_rentals, incidents)
 
-    # Print the top suspects
-    print("\n=== TOP 3 SUSPECTS ===")
+    st.header("Top Suspects")
+
+    col1, col2, col3 = st.columns(3)
+    columns = [col1, col2, col3]
+
     for i, suspect in enumerate(top_suspects):
-        print(f"\n#{i + 1}: {suspect['name']}")
-        print(f"Evidence: {suspect['match_count']} crime scenes")
-        print(f"Justification: {suspect['justification']}")
+        with columns[i]:
+            st.subheader(f"#{i + 1}: {suspect['name']}")
+            for s in suspects:
+                if s['name'] == suspect['name']:
+                    st.write(f"**Occupation:** {s.get('occupation', 'Unknown')}")
+                    st.write(f"**Alibi:** {s.get('alibi', 'None provided')}")
+                    st.write(f"**Connections:** {suspect['match_count']} locations ({suspect['coverage']:.0f}%)")
 
-        if suspect['phone_evidence']:
-            print("Phone evidence at addresses:")
-            for address in suspect['phone_evidence']:
-                print(f"  - {address}")
+    st.header("Crime Scene Map")
 
-        if suspect['bike_evidence']:
-            print("Bike rental evidence at addresses:")
-            for address in suspect['bike_evidence']:
-                print(f"  - {address}")
+    top_suspect_devices = []
+    for suspect in top_suspects:
+        for s in suspects:
+            if s['name'] == suspect['name'] and 'phone_id' in s:
+                top_suspect_devices.append(s['phone_id'])
 
-if __name__ == "__main__":
-    main()
+    map_figure = create_map(incidents, phone_pings, top_suspect_devices)
+    folium_static(map_figure)
+
+    st.header("Incident Reports")
+    incident_df = pd.DataFrame([{
+        'Date': incident['date'],
+        'Address': incident['address'],
+        'Entry Time': incident['entry_time'],
+        'Exit Time': incident['exit_time'],
+        'Notes': incident['notes']
+    } for incident in incidents])
+
+    st.dataframe(incident_df)
+
+    st.header("Evidence Summary")
+
+    tabs = st.tabs(["Phone Evidence", "Bike Rentals"])
+
+    with tabs[0]:
+        for device_id, addresses in device_at_incidents.items():
+            if addresses:
+                st.write(f"**{device_to_suspect[device_id]}'s phone** detected at:")
+                for address in addresses:
+                    st.write(f"- {address}")
+
+    with tabs[1]:
+        for suspect_name, addresses in suspect_rentals.items():
+            if addresses:
+                st.write(f"**{suspect_name}** rented bikes during crimes at:")
+                for address in addresses:
+                    st.write(f"- {address}")
+
+    primary_suspect = top_suspects[0]['name'] if top_suspects else "No definitive suspect"
+    st.success(f"Primary suspect: **{primary_suspect}**")
+
+else:
+    st.info("Click 'Analyze Evidence' to view results")
+
+# Run 'streamlit run src/shameer_main.py' in terminal
