@@ -12,16 +12,16 @@ locator = Nominatim(user_agent="proximity_analyzer")
 
 def load_data():
     try:
-        with open('../case_files/incident_reports.json', 'r') as f:
+        with open('case_files/incident_reports.json', 'r') as f:
             incidents = json.load(f)
 
-        with open('../case_files/phone_pings.json', 'r') as f:
+        with open('case_files/phone_pings.json', 'r') as f:
             phone_pings = json.load(f)
 
-        with open('../case_files/suspects.json', 'r') as f:
+        with open('case_files/suspects.json', 'r') as f:
             suspects = json.load(f)
 
-        bike_logs = pd.read_csv('../case_files/bike_logs.csv')
+        bike_logs = pd.read_csv('case_files/bike_logs.csv')
 
         return incidents, phone_pings, suspects, bike_logs
     except Exception as e:
@@ -43,8 +43,8 @@ def analyze_proximity(incidents, phone_pings, device_to_suspect):
     device_at_incidents = {device_id: set() for device_id in device_to_suspect.keys()}
     evidence_log = {device_id: [] for device_id in device_to_suspect.keys()}
 
-    proximity_threshold = .75  # miles
-    time_window = 60  # minutes
+    proximity_threshold = 1  # miles
+    time_window = 1  # minutes
 
     for incident in incidents:
         incident_address = incident['address']
@@ -182,19 +182,19 @@ def create_map(incidents, phone_pings, top_suspect_devices):
             color = 'green'
             radius = 30
             fill_opacity = 0.7
-        else:
-            color = 'blue'
-            radius = 10
-            fill_opacity = 0.3
+        # else:
+        #     color = 'blue'
+        #     radius = 10
+        #     fill_opacity = 0.3
 
-        folium.CircleMarker(
-            location=[ping['lat'], ping['lon']],
-            radius=radius,
-            popup=f"Device: {ping['device_id']}<br>Time: {ping['timestamp']}",
-            color=color,
-            fill=True,
-            fill_opacity=fill_opacity
-        ).add_to(m)
+            folium.CircleMarker(
+                location=(ping['lat'], ping['lon']),
+                radius=radius,
+                popup=f"Device: {ping['device_id']}<br>Time: {ping['timestamp']}",
+                color=color,
+                fill=True,
+                fill_opacity=fill_opacity
+            ).add_to(m)
 
     return m
 
