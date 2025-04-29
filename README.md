@@ -1,3 +1,5 @@
+Results: **2nd Place**
+
 We think Ruth did the crimes and here are the reasons
 
 She claimed she was away for the entire week, but when we checked phone records we caught her within a 3/4 mile
