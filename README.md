@@ -1,8 +1,9 @@
-Results: **2nd Place**
+### Overview
+In this project, our goal was to analyze a dataset of crime evidence and identify the most likely suspect. Using data analysis and custom scripts, our team determined that Ruth was the primary suspect.
+### Findings
+- **Alibi check**: Ruth claimed she was out of town all week, but phone location data showed her within ¾ mile of two crime scenes and on Linden Street during a reported break-in.
+- **Property ownership**: She owned every home that was broken into, giving her possible inside access and knowledge of tenant routines.
+- **Program results**: After running our analysis scripts, Ruth was consistently ranked as the top suspect.
 
-We think Ruth did the crimes and here are the reasons
-
-She claimed she was away for the entire week, but when we checked phone records we caught her within a 3/4 mile
-radius at 2 of the crimes, and on Linden street during the time a breakin happened. she clearly lied about being away, for what reason?
-She also owns all homes broken into, every single one, she might have knowledge of where things are and when the tenants are out.
-When run through our program Ruth also comes up as the top suspect so we think its her.
+### My Contribution
+I worked on a team of three to write scripts that analyzed and compared data points such as phone records, property ownership, and timelines. I also developed a Python-based user interface to visualize the data and make the results easier to interpret. Our combined analysis led us to identify Ruth as the most likely suspect and earn 2nd place in the competition.
